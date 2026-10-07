@@ -198,9 +198,9 @@ $('adminUsers').onclick=async()=>{$('userModal').style.display='flex';await load
 $('closeUserModal').onclick=()=>{$('userModal').style.display='none'};
 $('userModal').addEventListener('click',e=>{if(e.target.id==='userModal')$('userModal').style.display='none'});
 
+const $=id=>document.getElementById(id);
 document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();session=null;role='';showLogin();};
 sb.auth.onAuthStateChange((_event,s)=>{session=s;if(!s)showLogin();});
-const $=id=>document.getElementById(id);
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const fmt=s=>s.split('-').reverse().join('/');
 const clean=s=>String(s==null?'':s).replace(/[\s\u00a0]+/g,' ').trim();
