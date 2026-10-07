@@ -128,13 +128,39 @@ const ROLE_NAMES={admin:'Administrador',operador:'Operador',visualizacao:'Visual
 function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='block';document.getElementById('userEmail').textContent=session?.user?.email||'';document.getElementById('userRole').textContent=ROLE_NAMES[role]||role;document.getElementById('up').style.display=['admin','operador'].includes(role)?'':'none';document.getElementById('adminUsers').style.display=role==='admin'?'':'none';}
 function showLogin(msg=''){document.getElementById('appShell').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginErr').textContent=msg;}
 async function loadRole(){const {data,error}=await sb.from('profiles').select('role').eq('id',session.user.id).single();if(error)throw error;role=data.role;}
-async function startApp(){try{const r=await sb.auth.getSession();session=r.data.session;if(!session)return showLogin();await loadRole();showApp();await loadData();sw('cvli');}catch(e){console.error(e);showLogin('Não foi possível carregar seu perfil.');}}
+async function startApp(){
+  try{
+    const r=await sb.auth.getSession();
+    session=r.data.session;
+    if(!session){showLogin();return;}
+  }catch(e){
+    console.error('ERRO AO OBTER SESSÃO:',e);
+    showLogin('Erro ao verificar sessão: '+(e?.message||e));
+    return;
+  }
+  try{
+    await loadRole();
+  }catch(e){
+    console.error('ERRO AO CARREGAR PERFIL:',e);
+    await sb.auth.signOut();
+    showLogin('Perfil não autorizado: '+(e?.message||e));
+    return;
+  }
+  showApp();
+  try{
+    await loadData();
+    sw('cvli');
+  }catch(e){
+    console.error('ERRO AO CARREGAR DADOS:',e);
+    showLogin('Login realizado, mas houve erro ao carregar as ocorrências: '+(e?.message||e));
+  }
+}
 let signupMode=false;
 const authSubtitle=document.getElementById('authSubtitle'),authSubmit=document.getElementById('authSubmit'),toggleSignup=document.getElementById('toggleSignup'),nameWrap=document.getElementById('nameWrap'),confirmWrap=document.getElementById('confirmWrap');
 function setAuthMode(signup){signupMode=signup;nameWrap.style.display=signup?'':'none';confirmWrap.style.display=signup?'':'none';authSubmit.textContent=signup?'Criar cadastro':'Entrar';toggleSignup.textContent=signup?'Já tenho cadastro':'Criar cadastro';authSubtitle.textContent=signup?'Crie seu acesso ao Dashboard de Ocorrências 2026.':'Faça login para acessar o Dashboard de Ocorrências 2026.';document.getElementById('loginErr').textContent='';}
 toggleSignup.onclick=()=>setAuthMode(!signupMode);
 document.getElementById('loginForm').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('loginErr');err.className='err';const email=document.getElementById('email').value.trim();const password=document.getElementById('password').value;if(signupMode){const nome=document.getElementById('name').value.trim();const confirm=document.getElementById('passwordConfirm').value;if(password.length<6){err.textContent='A senha deve ter pelo menos 6 caracteres.';return}if(password!==confirm){err.textContent='As senhas não conferem.';return}if(!nome){err.textContent='Informe seu nome.';return}err.textContent='Criando cadastro...';const {data,error}=await sb.auth.signUp({email,password,options:{data:{nome}}});if(error){err.textContent=error.message;return}if(data.session){session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await sb.auth.signOut();showLogin('Cadastro criado, mas o perfil ainda não pôde ser carregado.')}}else{err.className='err ok';err.textContent='Cadastro criado com sucesso. Verifique seu e-mail para confirmar a conta e depois faça login.';setAuthMode(false);document.getElementById('email').value=email;document.getElementById('password').value='';}return}
-err.textContent='Entrando...';const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){err.textContent=error.message;return}session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await sb.auth.signOut();showLogin('Usuário autenticado, mas sem perfil autorizado.')}};
+err.textContent='Entrando...';const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){err.textContent=error.message;return}session=data.session;await startApp();};
 
 function escapeHtml(v){
   return String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -173,7 +199,7 @@ $('closeUserModal').onclick=()=>{$('userModal').style.display='none'};
 $('userModal').addEventListener('click',e=>{if(e.target.id==='userModal')$('userModal').style.display='none'});
 
 document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();session=null;role='';showLogin();};
-sb.auth.onAuthStateChange(async (_event,s)=>{session=s;if(s&&!document.getElementById('appShell').style.display){try{await loadRole();showApp();await loadData();sw('cvli')}catch(e){console.error(e)}}else if(!s)showLogin();});
+sb.auth.onAuthStateChange((_event,s)=>{session=s;if(!s)showLogin();});
 const $=id=>document.getElementById(id);
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const fmt=s=>s.split('-').reverse().join('/');
