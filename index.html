@@ -123,6 +123,7 @@ let cur='cvli',cia=0;
 const SUPABASE_URL=window.SUPABASE_URL||'COLE_A_URL_DO_SEU_PROJETO_SUPABASE_AQUI';
 const SUPABASE_ANON_KEY=window.SUPABASE_ANON_KEY||'COLE_A_CHAVE_ANON_PUBLICA_AQUI';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
 let session=null,role='';
 const ROLE_NAMES={admin:'Administrador',operador:'Operador',visualizacao:'Visualização'};
 function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='block';document.getElementById('userEmail').textContent=session?.user?.email||'';document.getElementById('userRole').textContent=ROLE_NAMES[role]||role;document.getElementById('up').style.display=['admin','operador'].includes(role)?'':'none';document.getElementById('adminUsers').style.display=role==='admin'?'':'none';}
@@ -198,7 +199,6 @@ $('adminUsers').onclick=async()=>{$('userModal').style.display='flex';await load
 $('closeUserModal').onclick=()=>{$('userModal').style.display='none'};
 $('userModal').addEventListener('click',e=>{if(e.target.id==='userModal')$('userModal').style.display='none'});
 
-const $=id=>document.getElementById(id);
 document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();session=null;role='';showLogin();};
 sb.auth.onAuthStateChange((_event,s)=>{session=s;if(!s)showLogin();});
 const pct=(a,b)=>b?Math.round(a/b*100):0;
