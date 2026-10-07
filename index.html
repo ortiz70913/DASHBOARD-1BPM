@@ -108,21 +108,21 @@ const DS={
 let cur='cvli',cia=0;
 const SUPABASE_URL=window.SUPABASE_URL||'COLE_A_URL_DO_SEU_PROJETO_SUPABASE_AQUI';
 const SUPABASE_ANON_KEY=window.SUPABASE_ANON_KEY||'COLE_A_CHAVE_ANON_PUBLICA_AQUI';
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let session=null,role='';
 const ROLE_NAMES={admin:'Administrador',operador:'Operador',visualizacao:'Visualização'};
 function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='block';document.getElementById('userEmail').textContent=session?.user?.email||'';document.getElementById('userRole').textContent=ROLE_NAMES[role]||role;document.getElementById('up').style.display=['admin','operador'].includes(role)?'':'none';}
 function showLogin(msg=''){document.getElementById('appShell').style.display='none';document.getElementById('loginScreen').style.display='flex';document.getElementById('loginErr').textContent=msg;}
-async function loadRole(){const {data,error}=await supabase.from('profiles').select('role').eq('id',session.user.id).single();if(error)throw error;role=data.role;}
-async function startApp(){try{const r=await supabase.auth.getSession();session=r.data.session;if(!session)return showLogin();await loadRole();showApp();await loadData();sw('cvli');}catch(e){console.error(e);showLogin('Não foi possível carregar seu perfil.');}}
+async function loadRole(){const {data,error}=await sb.from('profiles').select('role').eq('id',session.user.id).single();if(error)throw error;role=data.role;}
+async function startApp(){try{const r=await sb.auth.getSession();session=r.data.session;if(!session)return showLogin();await loadRole();showApp();await loadData();sw('cvli');}catch(e){console.error(e);showLogin('Não foi possível carregar seu perfil.');}}
 let signupMode=false;
 const authSubtitle=document.getElementById('authSubtitle'),authSubmit=document.getElementById('authSubmit'),toggleSignup=document.getElementById('toggleSignup'),nameWrap=document.getElementById('nameWrap'),confirmWrap=document.getElementById('confirmWrap');
 function setAuthMode(signup){signupMode=signup;nameWrap.style.display=signup?'':'none';confirmWrap.style.display=signup?'':'none';authSubmit.textContent=signup?'Criar cadastro':'Entrar';toggleSignup.textContent=signup?'Já tenho cadastro':'Criar cadastro';authSubtitle.textContent=signup?'Crie seu acesso ao Dashboard de Ocorrências 2026.':'Faça login para acessar o Dashboard de Ocorrências 2026.';document.getElementById('loginErr').textContent='';}
 toggleSignup.onclick=()=>setAuthMode(!signupMode);
-document.getElementById('loginForm').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('loginErr');err.className='err';const email=document.getElementById('email').value.trim();const password=document.getElementById('password').value;if(signupMode){const nome=document.getElementById('name').value.trim();const confirm=document.getElementById('passwordConfirm').value;if(password.length<6){err.textContent='A senha deve ter pelo menos 6 caracteres.';return}if(password!==confirm){err.textContent='As senhas não conferem.';return}if(!nome){err.textContent='Informe seu nome.';return}err.textContent='Criando cadastro...';const {data,error}=await supabase.auth.signUp({email,password,options:{data:{nome}}});if(error){err.textContent=error.message;return}if(data.session){session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await supabase.auth.signOut();showLogin('Cadastro criado, mas o perfil ainda não pôde ser carregado.')}}else{err.className='err ok';err.textContent='Cadastro criado com sucesso. Verifique seu e-mail para confirmar a conta e depois faça login.';setAuthMode(false);document.getElementById('email').value=email;document.getElementById('password').value='';}return}
-err.textContent='Entrando...';const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){err.textContent=error.message;return}session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await supabase.auth.signOut();showLogin('Usuário autenticado, mas sem perfil autorizado.')}};
-document.getElementById('logout').onclick=async()=>{await supabase.auth.signOut();session=null;role='';showLogin();};
-supabase.auth.onAuthStateChange(async (_event,s)=>{session=s;if(s&&!document.getElementById('appShell').style.display){try{await loadRole();showApp();await loadData();sw('cvli')}catch(e){console.error(e)}}else if(!s)showLogin();});
+document.getElementById('loginForm').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('loginErr');err.className='err';const email=document.getElementById('email').value.trim();const password=document.getElementById('password').value;if(signupMode){const nome=document.getElementById('name').value.trim();const confirm=document.getElementById('passwordConfirm').value;if(password.length<6){err.textContent='A senha deve ter pelo menos 6 caracteres.';return}if(password!==confirm){err.textContent='As senhas não conferem.';return}if(!nome){err.textContent='Informe seu nome.';return}err.textContent='Criando cadastro...';const {data,error}=await sb.auth.signUp({email,password,options:{data:{nome}}});if(error){err.textContent=error.message;return}if(data.session){session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await sb.auth.signOut();showLogin('Cadastro criado, mas o perfil ainda não pôde ser carregado.')}}else{err.className='err ok';err.textContent='Cadastro criado com sucesso. Verifique seu e-mail para confirmar a conta e depois faça login.';setAuthMode(false);document.getElementById('email').value=email;document.getElementById('password').value='';}return}
+err.textContent='Entrando...';const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){err.textContent=error.message;return}session=data.session;try{await loadRole();showApp();await loadData();sw('cvli')}catch(x){await sb.auth.signOut();showLogin('Usuário autenticado, mas sem perfil autorizado.')}};
+document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();session=null;role='';showLogin();};
+sb.auth.onAuthStateChange(async (_event,s)=>{session=s;if(s&&!document.getElementById('appShell').style.display){try{await loadRole();showApp();await loadData();sw('cvli')}catch(e){console.error(e)}}else if(!s)showLogin();});
 const $=id=>document.getElementById(id);
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const fmt=s=>s.split('-').reverse().join('/');
@@ -272,12 +272,12 @@ async function uploadExcel(file){
     for(const name of names){const parsed=parseBrowserSheet(wb.Sheets[name]);if(parsed.length){rows=parsed;sheetUsed=name;break}}
     if(!rows.length)throw new Error('Não encontrei registros. A planilha precisa ter DATA (ou DATA DO FATO) e CIA.');
     $('msg').textContent=`Aba ${sheetUsed} lida: ${rows.length} registros. Limpando a base antiga...`;
-    const {error:delError}=await supabase.from('ocorrencias').delete().eq('aba',cur);
+    const {error:delError}=await sb.from('ocorrencias').delete().eq('aba',cur);
     if(delError)throw delError;
     const BATCH=250;let total=0;
     for(let i=0;i<rows.length;i+=BATCH){
       const payload=rows.slice(i,i+BATCH).map(r=>({aba:cur,...r}));
-      const {error}=await supabase.from('ocorrencias').insert(payload);
+      const {error}=await sb.from('ocorrencias').insert(payload);
       if(error)throw error;
       total+=payload.length;
       $('msg').textContent=`Importando ${file.name}: ${total} de ${rows.length} registros...`;
@@ -293,7 +293,7 @@ async function loadData(){
   for(const k of keys){
     const all=[];let from=0;const page=1000;
     while(true){
-      const {data,error}=await supabase.from('ocorrencias').select('*').eq('aba',k).order('data',{ascending:true}).range(from,from+page-1);
+      const {data,error}=await sb.from('ocorrencias').select('*').eq('aba',k).order('data',{ascending:true}).range(from,from+page-1);
       if(error)throw error;
       all.push(...(data||[]));
       if(!data||data.length<page)break;
